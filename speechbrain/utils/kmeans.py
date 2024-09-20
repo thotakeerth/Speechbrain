@@ -118,6 +118,31 @@ def fetch_kmeans_model(
     )
 
 
+def process_chunks(data, chunk_size, model):
+    """Process data in chunks of a specified size.
+
+    Args:
+        data (list):
+            The list of integers to be processed.
+        chunk_size (int):
+            The size of each chunk.
+        model : MiniBatchKMeans
+            The initial kmeans model for training.
+
+    return:
+        model : MiniBatchKMeans
+            The initial kmeans model for training.
+    """
+    for i in range(0, len(data), chunk_size):
+        chunk = data[i : i + chunk_size]
+
+        # Skip processing if the chunk size is smaller than chunk_size
+        if len(chunk) < chunk_size:
+            break
+
+        model = model.partial_fit(chunk)
+
+
 def train(
     model,
     train_set,
@@ -165,7 +190,7 @@ def train(
 
             # train a kmeans model on a single batch if  features_list reaches the kmeans_batch_size.
             if len(features_list) >= kmeans_batch_size:
-                model = model.fit(features_list)
+                process_chunks(features_list, kmeans_batch_size, model)
                 iteration += 1
                 features_list = []
 
@@ -182,8 +207,8 @@ def train(
                 )
                 save_model(model, checkpoint_path)
 
-        if len(features_list) > 0:
-            model = model.fit(features_list)
+        if len(features_list) >= kmeans_batch_size:
+            process_chunks(features_list, kmeans_batch_size, model)
 
 
 def save_model(model, checkpoint_path):
